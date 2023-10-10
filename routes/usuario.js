@@ -1,7 +1,8 @@
 const express = require("express");
 const router = express.Router();
-const usuarioController = require("../controller/usuario/usuario");
+const usuarioController = require("../controller/usuario");
 
-router.post("/usuario/registrar", usuarioController.registrarUsuario);
-router.post("/usuario/registrarRol", usuarioController.rolUsuario);
+// Ruta para registrar un rol de usuario
+router.post("/usuario/registrarRol", usuarioController.registrarRol);
+router.post("/usuario/registrarUsuario", usuarioController.registrarUsuario);
 module.exports = router;

@@ -1,25 +1,26 @@
 const sql = require("mssql");
+require("dotenv/config");
 
-const userConection = {
+const config = {
   user: process.env.USER,
   password: process.env.PASSWORD,
-  server: "localhost",
+  server: process.env.SERVER,
   database: process.env.DATABASE,
   options: {
-    encrypt: false,
+    encrypt: true,
+    trustServerCertificate: true,
   },
 };
-const pool = new sql.ConnectionPool(userConection);
 
 const conectarDataBase = async () => {
   try {
-    await pool.connect();
+    const pool = await sql.connect(config);
+
     console.log("Conexión exitosa a la base de datos");
+    return pool;
   } catch (error) {
     console.log("Error en la cadena de conexión:", error);
   }
 };
 
-conectarDataBase();
-
-module.exports = pool;
+module.exports = conectarDataBase;
