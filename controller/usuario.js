@@ -1,12 +1,13 @@
 const UsuarioModelo = require("../model/Usuario");
 const bcrypt = require("bcryptjs");
 
-// Controlador para registrar un rol de usuario
+// CONTROLADOR PARA REGISTRAR EL ROL
 const registrarRol = async (req, res) => {
   try {
     const { nombre } = req.body;
 
     const idRol = await UsuarioModelo.registrarRol(nombre);
+
     if (idRol !== false) {
       res.status(200).json({
         mensaje: "Rol registrado con éxito",
@@ -19,7 +20,6 @@ const registrarRol = async (req, res) => {
         status: false,
       });
     }
-    res.status(200).json({ idRol });
   } catch (error) {
     console.error("Error en el controlador al registrar el rol:", error);
     res.status(500).json({
@@ -29,16 +29,27 @@ const registrarRol = async (req, res) => {
   }
 };
 
-//Controlador para registar un nuevo usuario
+//CONTROALDOR PARA REGISTRAR EL USUARIO
 const registrarUsuario = async (req, res) => {
   try {
     const { nombre, email, password, idRol } = req.body;
 
+    //VALIDACION QUE LOS CAMPOS ESTEN VACIOS
     if (!nombre || !email || !password || !idRol) {
       return res.status(400).json({
         mensaje: "Los campos no pueden estar vacíos.",
       });
     }
+
+    //VALIDACION DE LA CONTRASEÑA
+    if (password.length < 10) {
+      return res.status(400).json({
+        mensaje: "La contraseña debe tener al menos 10 caracteres.",
+        status: false,
+      });
+    }
+
+    //VALIDACION DEL CORREO ELECTRONICO DUPLICADO
 
     const hashPassword = await bcrypt.hash(password, 10);
 
@@ -49,14 +60,19 @@ const registrarUsuario = async (req, res) => {
       idRol
     );
 
-    if (usuarioRegistrado !== false) {
+    if (usuarioRegistrado === true) {
       return res.status(201).json({
         mensaje: "Usuario registrado correctamente.",
         status: true,
       });
+    } else if (usuarioRegistrado === false) {
+      return res.status(400).json({
+        mensaje: "El correo electrónico ya está registrado.",
+        status: false,
+      });
     } else {
       return res.status(500).json({
-        mensaje: "Error al registrar el usuario.",
+        mensaje: "Error al registrar el cliente.",
         status: false,
       });
     }
@@ -64,6 +80,7 @@ const registrarUsuario = async (req, res) => {
     console.error("Error en el controlador al registrar el usuario:", error);
     return res.status(500).json({
       mensaje: "Error al registrar el usuario.",
+      mensaje: error.message,
     });
   }
 };

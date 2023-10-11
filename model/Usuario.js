@@ -8,20 +8,14 @@ const registrarRol = async nombre => {
 
     const request = await pool.request();
 
-    // Verifica si el nombre es nulo o vacío antes de ejecutar el procedimiento almacenado
-    if (!nombre) {
-      console.error("El nombre no puede estar vacío o nulo.");
-      return false;
-    }
+    //CONFIGURO LOS PARAMETROS DEL PROCEDIMIENTO
+    await request.input("nombre", sql.NVarChar, nombre);
+    await request.output("idRol", sql.BigInt);
 
-    // Configura el parámetro 'nombre y idRol' para el procedimiento almacenado
-    request.input("nombre", sql.NVarChar, nombre);
-    request.output("idRol", sql.BigInt);
-
-    // Ejecuta el procedimiento almacenado
+    //EJECUTA EL PROCEDIMIENTO ALMACENADO
     const result = await request.execute("dbo.RolUsuario");
 
-    // Verifica si el procedimiento almacenado devolvió un resultado válido
+    //VEREFICA SI EL PROCEDIMINETO ALMACENADO RESULTO VALIDO
     if (result.returnValue === 0) {
       const idRol = result.output.idRol;
       console.log("Rol registrado con éxito.", idRol, nombre);
@@ -41,29 +35,32 @@ const registrarUsuario = async (nombreUsuario, email, password, idRol) => {
     const pool = await conexion();
     const request = await pool.request();
 
-    // Verifica que los datos no sean nulos o vacíos antes de ejecutar el procedimiento almacenado
-    if (!nombreUsuario || !email || !password || idRol === undefined) {
-      console.error("Error: Los datos son nulos o vacíos.");
-      return false;
-    }
-
-    // Inserta el nuevo usuario en la tabla Usuarios
+    //CONFIGURO LOS PARAMETROS DEL PROCEDIMIENTO
     await request.input("nombre", sql.NVarChar, nombreUsuario);
     await request.input("email", sql.NVarChar, email);
     await request.input("password", sql.NVarChar, password);
     await request.input("idRol", sql.BigInt, idRol);
+    await request.output("idUsuario", sql.BigInt);
+    await request.output("correoExiste", sql.Bit);
 
-    const resultUsuario = await request.execute("dbo.UsuarioRegistrado");
+    //EJECUTA EL PROCEDIMIENTO ALMACENADO
+    const result = await request.execute("dbo.UsuarioRegistrado");
 
-    // Verifica si el procedimiento almacenado [dbo.UsuarioRegistrado] se ejecutó con éxito
-    if (resultUsuario.returnValue === 0) {
+    //VEREFICA SI EL PROCEDIMINETO ALMACENADO RESULTO VALIDO
+    const idUsuario = result.output.idUsuario;
+    const correoExiste = result.output.correoExiste;
+
+    //VEREFICO SI EL EMAIL EXISTE
+    if (correoExiste) {
+      console.log("El correo electronico ya existe");
+      return false;
+    }
+
+    if (idUsuario) {
       console.log("Usuario registrado con éxito.");
       return true;
     } else {
-      console.error(
-        "Error al registrar el usuario:",
-        resultUsuario.returnValue
-      );
+      console.error("El procedimiento almacenado devolvió un código de error.");
       return false;
     }
   } catch (error) {
