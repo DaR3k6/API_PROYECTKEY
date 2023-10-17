@@ -1,4 +1,3 @@
-const { Container } = require("react-bootstrap");
 const clienteModelo = require("../model/Cliente");
 
 //CONTROLADOR PARA REGISTAR UN CLIENTE

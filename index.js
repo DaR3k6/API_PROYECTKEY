@@ -13,11 +13,9 @@ app.use(express.urlencoded({ extended: true }));
 
 //INICIAMOS CON LAS RUTAS QUE POR EL CONTROLADOR
 const usuarioRuta = require("./routes/usuario");
-const clienteRuta = require("./routes/cliente");
 
 //RUTAS ACUERDO CON EL CONTROLADOR
 app.use("/api/", usuarioRuta);
-app.use("/api/", clienteRuta);
 
 app.listen(port, () => {
   console.log(`El servidor está conectado en: http://localhost:${port}`);
