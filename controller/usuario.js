@@ -1,4 +1,3 @@
-const e = require("express");
 const UsuarioModelo = require("../model/Usuario");
 const bcrypt = require("bcryptjs");
 

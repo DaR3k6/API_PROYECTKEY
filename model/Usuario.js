@@ -27,6 +27,10 @@ const registrarRol = async nombre => {
     }
   } catch (error) {
     console.error("Error al registrar el rol:", error);
+    return {
+      mensaje: "Error al registrar el rol",
+      status: false,
+    };
   }
 };
 
@@ -77,7 +81,10 @@ const registrarUsuario = async (
     }
   } catch (error) {
     console.error("Error al registrar el usuario:", error);
-    return false;
+    return {
+      mensaje: "Error al registrar el usuario",
+      status: false,
+    };
   }
 };
 
@@ -120,7 +127,10 @@ const registrarVendedor = async (
     }
   } catch (error) {
     console.error("Error al registrar el vendedor:", error);
-    return false;
+    return {
+      mensaje: "Error al registrar el vendedor",
+      status: false,
+    };
   }
 };
 
