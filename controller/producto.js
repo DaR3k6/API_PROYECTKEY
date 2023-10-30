@@ -224,7 +224,7 @@ const listarProductos = async (req, res) => {
 const filtrarCategoriaPorNombre = async (req, res) => {
   try {
     const nombreCategoria = req.params.categoria;
-    console.log(nombreCategoria);
+
     const categoria = await productoModelo.filtrarPorCategoria(nombreCategoria);
 
     if (categoria.status) {
