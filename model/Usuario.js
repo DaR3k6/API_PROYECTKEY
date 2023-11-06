@@ -1,38 +1,6 @@
 const sql = require("mssql");
 const conexion = require("./Conexion");
 
-// FUNCIÓN PARA REGISTRAR EL ROL
-const registrarRol = async nombre => {
-  try {
-    const pool = await conexion();
-
-    const request = await pool.request();
-
-    //CONFIGURO LOS PARAMETROS DEL PROCEDIMIENTO
-    await request.input("nombre", sql.NVarChar, nombre);
-    await request.output("idRol", sql.BigInt);
-
-    //EJECUTA EL PROCEDIMIENTO ALMACENADO
-    const result = await request.execute("dbo.RolUsuario");
-
-    const idRol = result.output.idRol;
-
-    //VEREFICA SI EL PROCEDIMINETO ALMACENADO RESULTO VALIDO
-    if (idRol === -1) {
-      console.log("El rol ya existe");
-      return false;
-    } else if (idRol > 0) {
-      console.log("Rol registrado con éxito.", idRol, nombre);
-      return true;
-    }
-  } catch (error) {
-    console.error("Error al registrar el rol:", error);
-    return {
-      mensaje: "Error al registrar el rol",
-      status: false,
-    };
-  }
-};
 
 //FUNCIÓN PARA REGISTRAR EL USUARIO
 const registrarUsuario = async (

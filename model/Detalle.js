@@ -1,7 +1,7 @@
 const sql = require("mssql");
 const conexion = require("./Conexion");
 
-//FUNCION DE INSERTAR LA FACTURA Y EL DETALLE
+//FUNCION DE INSERTAR LA FACTURA, DETALLE Y EL METODO DE PAGO
 const insertarFacturaYDetalle = async (
   fechaFactura,
   total,
@@ -13,6 +13,18 @@ const insertarFacturaYDetalle = async (
   precioUnitario
 ) => {
   try {
+    // Convierte cantidad a un número entero
+    cantidad = parseInt(cantidad);
+
+    // Verifica que cantidad sea un número válido
+    if (isNaN(cantidad)) {
+      return JSON.stringify({
+        status: false,
+        mensaje:
+          "Error en la actualización. La cantidad no es un número válido.",
+      });
+    }
+
     const pool = await conexion();
     const request = await pool.request();
 
@@ -20,6 +32,7 @@ const insertarFacturaYDetalle = async (
       fechaFactura = fechaFactura.toISOString().split("T")[0];
     }
 
+    // CONFIGURO LOS PARÁMETROS DEL PROCEDIMIENTO
     await request.input("fechaFactura", sql.Date, fechaFactura);
     await request.input("total", sql.Decimal(18, 0), total);
     await request.input(
@@ -39,6 +52,7 @@ const insertarFacturaYDetalle = async (
     await request.output("resultado", sql.Bit);
     await request.output("nuevoID", sql.Int);
 
+    // EJECUTA EL PROCEDIMIENTO ALMACENADO
     const result = await request.execute("dbo.InsertarFacturaYDetalle");
 
     const codigoResultado = result.output.resultado;
@@ -75,18 +89,20 @@ const insertarFacturaYDetalle = async (
   }
 };
 
-//FUNCION DE ELIMAR LA FACTURA Y EL DETALLE
+//FUNCION DE ELIMAR LA FACTURA, DETALLE Y EL METODO DE PAGO
 const eliminarFacturaDetalles = async facturaID => {
   try {
     const pool = await conexion();
     const request = await pool.request();
 
     // Configura los parámetros del procedimiento almacenado
-    request.input("facturaID", sql.Int, facturaID);
-    request.output("resultado", sql.Bit);
+    await request.input("facturaID", sql.Int, facturaID);
+    await request.output("resultado", sql.Bit);
 
     // Ejecuta el procedimiento almacenado
-    const result = await request.execute("dbo.EliminarFacturaDetalles");
+    const result = await request.execute(
+      "dbo.EliminarFacturaDetallesYMetodoPago"
+    );
 
     const resultado = result.output.resultado;
 
@@ -105,7 +121,101 @@ const eliminarFacturaDetalles = async facturaID => {
   }
 };
 
+//FUNCION DE ACTULIZAR LA FACTURA, DETALLE Y LOS METODO DE PAGO
+const actualizarFacturaDetalleMetodoPago = async (
+  idFactura,
+  nuevaFechaFactura,
+  nuevoTotal,
+  nombre,
+  descripcion,
+  habilitado,
+  cantidad,
+  precioUnitario
+) => {
+  try {
+    const pool = await conexion();
+    const request = await pool.request();
+
+    // CONFIGURAR LOS PARÁMETROS DEL PROCEDIMIENTO
+    await request.input("idFactura", sql.Int, idFactura);
+    await request.input("nuevaFechaFactura", sql.Date, nuevaFechaFactura);
+    await request.input("nuevoTotal", sql.Decimal(18, 0), nuevoTotal);
+    await request.input("nombre", sql.NVarChar(250), nombre);
+    await request.input("descripcion", sql.NVarChar(250), descripcion);
+    await request.input("habilitado", sql.Bit, habilitado);
+    await request.input("cantidad", sql.Int, cantidad);
+    await request.input("precioUnitario", sql.Decimal(18, 0), precioUnitario);
+    await request.output("resultado", sql.Bit);
+
+    // EJECUTAR EL PROCEDIMIENTO ALMACENADO
+    const result = await request.execute(
+      "dbo.ActualizarFacturaDetallesYMetodoPago"
+    );
+
+    const resultado = result.output.resultado;
+
+    if (resultado) {
+      return {
+        status: true,
+        mensaje: "Actualización exitosa",
+      };
+    } else {
+      return {
+        status: false,
+        mensaje: "Error en la actualización",
+      };
+    }
+  } catch (error) {
+    console.error(
+      "Error al actualizar la factura, detalles y método de pago:",
+      error
+    );
+
+    return {
+      status: false,
+      mensaje: "Error en la actualización",
+      error: error.message,
+    };
+  }
+};
+
+//FUNCION DE LISTRAR LA FACTURA, DETALLE Y LOS METODO DE PAGO
+const listarFacturasDetallesMetodosPago = async facturaID => {
+  try {
+    const pool = await conexion();
+    const request = await pool.request();
+
+    // CONFIGURAR LOS PARÁMETROS DEL PROCEDIMIENTO
+    await request.input("facturaID", sql.Int, facturaID);
+
+    // EJECUTAR EL PROCEDIMIENTO ALMACENADO
+    const result = await request.execute(
+      "dbo.ListarFacturasDetallesMetodosPago"
+    );
+    console.log(result);
+
+    return {
+      status: true,
+      mensaje: "Lista de facturas, detalles y métodos de pago",
+      data: result.recordset,
+    };
+  } catch (error) {
+    console.error(
+      "Error al actualizar la factura, detalles y método de pago:",
+      error
+    );
+
+    return {
+      status: false,
+      mensaje: "Error en la actualización",
+      error: error.message,
+    };
+  }
+};
+
 module.exports = {
   insertarFacturaYDetalle,
   eliminarFacturaDetalles,
+  actualizarFacturaDetalleMetodoPago,
+  listarFacturasDetallesMetodosPago,
 };
