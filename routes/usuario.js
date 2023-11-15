@@ -64,7 +64,6 @@ const auth = require("../helper/auth");
  *               status: false
  *               error: Detalles del error
  */
-
 router.post("/usuario/registrarUsuario", usuarioController.registrarUsuario);
 
 /**
@@ -131,7 +130,8 @@ router.post("/login", usuarioController.loginUsuario);
  *                 description: Nombre del vendedor o cliente.
  *               fechaNacimiento:
  *                 type: string
- *                 description: Fecha de nacimiento del vendedor o cliente.
+ *                 format: date
+ *                 description: Fecha de nacimiento del vendedor o cliente (formato YYYY-MM-DD).
  *               usuarioId:
  *                 type: number
  *                 description: ID del usuario relacionado con el vendedor o cliente.
@@ -159,8 +159,8 @@ router.post("/login", usuarioController.loginUsuario);
  *               mensaje: Error al registrar el vendedor.
  *               status: false
  */
-
 router.post("/vendedor/registrarVendedor", usuarioController.registrarVendedor);
+
 /**
  * @swagger
  * /proyectkey/informacion/usuario/{id}:

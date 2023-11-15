@@ -4,8 +4,8 @@ const jwt = require("jsonwebtoken");
 const nodemailer = require("nodemailer");
 const correo = require("../helper/correo");
 
-// FUNCION PARA ENVIOS DE CORREO ELECTRONICO
-const enviarCorreoElectronico = async destinatario => {
+// Función para enviar correo electrónico
+const enviarCorreoElectronico = async (destinatario, contenido) => {
   const transporter = nodemailer.createTransport({
     service: "Gmail",
     auth: {
@@ -18,7 +18,7 @@ const enviarCorreoElectronico = async destinatario => {
     from: process.env.EMAIL,
     to: destinatario,
     subject: "Confirmación de registro",
-    html: correo,
+    html: contenido,
   };
 
   try {
@@ -29,7 +29,7 @@ const enviarCorreoElectronico = async destinatario => {
   }
 };
 
-// CONTROLADOR PARA REGISTRAR EL USUARIO
+// Controlador para registrar un nuevo usuario
 const registrarUsuario = async (req, res) => {
   try {
     const { nombre, apellido, email, password, idRol } = req.body;
@@ -43,7 +43,7 @@ const registrarUsuario = async (req, res) => {
     }
 
     // Validación de la longitud de la contraseña
-    if (password.length < 3) {
+    if (password.length < 10) {
       return res.status(400).json({
         mensaje: "La contraseña debe tener al menos 10 caracteres.",
         status: false,
@@ -60,7 +60,6 @@ const registrarUsuario = async (req, res) => {
       hashPassword,
       idRol
     );
-    console.log(usuarioRegistrado);
 
     if (usuarioRegistrado.status) {
       const contenidoCorreo = `<p>Bienvenido ${nombre} ${apellido}, tu cuenta ha sido registrada con éxito.</p>`;
@@ -74,8 +73,8 @@ const registrarUsuario = async (req, res) => {
         status: true,
         usuario: usuarioRegistrado.usuario,
       });
-    } else if (!usuarioRegistrado.status) {
-      return res.status(404).json({
+    } else {
+      return res.status(500).json({
         mensaje: usuarioRegistrado.mensaje,
         status: false,
         error: usuarioRegistrado.error,
@@ -91,7 +90,7 @@ const registrarUsuario = async (req, res) => {
   }
 };
 
-// CONTROLADOR PARA REGISTRAR EL VENDEDOR
+// Controlador para registrar un nuevo vendedor
 const registrarVendedor = async (req, res) => {
   try {
     const { documento, nombre, fechaNacimiento, usuarioId } = req.body;
@@ -104,15 +103,12 @@ const registrarVendedor = async (req, res) => {
       });
     }
 
-    // Asegúrate de llamar al modelo correspondiente para el registro en la base de datos
     const vendedorRegistrado = await UsuarioModelo.registrarVendedor(
       documento,
       nombre,
       fechaNacimiento,
       usuarioId
     );
-
-    console.log("Resultado del modelo:", vendedorRegistrado);
 
     if (vendedorRegistrado.status) {
       return res.status(201).json({
@@ -137,15 +133,7 @@ const registrarVendedor = async (req, res) => {
   }
 };
 
-module.exports = {
-  registrarVendedor,
-};
-
-module.exports = {
-  registrarVendedor,
-};
-
-// CONTROLADOR PARA LOGEARSE
+// Controlador para iniciar sesión
 const loginUsuario = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -165,7 +153,7 @@ const loginUsuario = async (req, res) => {
         idUsuario.Contraseña
       );
 
-      // CREO EL TOKEN DE AUTENTICACION
+      // Creo el token de autenticación
       const token = jwt.sign(
         {
           userId: idUsuario.id,
@@ -199,21 +187,21 @@ const loginUsuario = async (req, res) => {
       });
     }
   } catch (error) {
-    console.error("Error en el controlador logearse:", error);
+    console.error("Error en el controlador al iniciar sesión:", error);
     return res.status(500).json({
-      mensaje: "Error al logearse.",
+      mensaje: "Error al iniciar sesión.",
       status: false,
       error: error.message,
     });
   }
 };
 
-//CONTROLADOR PARA TREAR TODA LA INFORMACION DEL USUARIO
+// Controlador para obtener información del usuario por ID
 const informacionUsuario = async (req, res) => {
   try {
     const id = req.params.id;
 
-    // Validación de que el ID es un número válido (puedes ajustarlo según tus necesidades)
+    // Validación de que el ID es un número válido
     if (isNaN(id)) {
       return res.status(400).json({
         mensaje: "El ID proporcionado no es válido.",
@@ -239,7 +227,7 @@ const informacionUsuario = async (req, res) => {
     }
   } catch (error) {
     return res.status(500).json({
-      mensaje: "Error traer la informacion",
+      mensaje: "Error al obtener la información del usuario.",
       status: false,
       error: error.message,
     });
