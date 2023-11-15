@@ -1,37 +1,31 @@
 const UsuarioModelo = require("../model/Usuario");
 const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
+const nodemailer = require("nodemailer");
+const correo = require("../helper/correo");
 
-// CONTROLADOR PARA REGISTRAR EL ROL
-const registrarRol = async (req, res) => {
+// FUNCION PARA ENVIOS DE CORREO ELECTRONICO
+const enviarCorreoElectronico = async destinatario => {
+  const transporter = nodemailer.createTransport({
+    service: "Gmail",
+    auth: {
+      user: process.env.EMAIL,
+      pass: process.env.TOKEN,
+    },
+  });
+
+  const mailOptions = {
+    from: process.env.EMAIL,
+    to: destinatario,
+    subject: "Confirmación de registro",
+    html: correo,
+  };
+
   try {
-    const { nombre } = req.body;
-
-    const idRol = await UsuarioModelo.registrarRol(nombre);
-
-    if (idRol === true) {
-      return res.status(200).json({
-        mensaje: "Rol registrado con éxito",
-        status: true,
-      });
-    } else if (idRol === false) {
-      return res.status(400).json({
-        mensaje: "El rol ya existe",
-        status: false,
-      });
-    } else {
-      return res.status(500).json({
-        mensaje: "Error al registrar el rol",
-        status: false,
-        error: idRol,
-      });
-    }
+    const info = await transporter.sendMail(mailOptions);
+    console.log("Correo electrónico enviado:", info.response);
   } catch (error) {
-    console.error("Error en el controlador al registrar el rol:", error);
-    return res.status(500).json({
-      mensaje: "Error al registrar el rol de usuario",
-      status: false,
-      error: error.message, // Proporciona más detalles del error
-    });
+    console.error("Error al enviar el correo:", error);
   }
 };
 
@@ -49,7 +43,7 @@ const registrarUsuario = async (req, res) => {
     }
 
     // Validación de la longitud de la contraseña
-    if (password.length < 10) {
+    if (password.length < 3) {
       return res.status(400).json({
         mensaje: "La contraseña debe tener al menos 10 caracteres.",
         status: false,
@@ -66,22 +60,25 @@ const registrarUsuario = async (req, res) => {
       hashPassword,
       idRol
     );
+    console.log(usuarioRegistrado);
 
-    if (usuarioRegistrado === true) {
+    if (usuarioRegistrado.status) {
+      const contenidoCorreo = `<p>Bienvenido ${nombre} ${apellido}, tu cuenta ha sido registrada con éxito.</p>`;
+
+      // Llama a la función de envío de correo con el contenido correcto
+      console.log("Enviando correo al usuario...");
+      enviarCorreoElectronico(email, contenidoCorreo);
+
       return res.status(201).json({
-        mensaje: "Usuario registrado correctamente.",
+        mensaje: usuarioRegistrado.mensaje,
         status: true,
+        usuario: usuarioRegistrado.usuario,
       });
-    } else if (usuarioRegistrado === false) {
-      return res.status(400).json({
-        mensaje: "El correo electrónico ya está registrado.",
+    } else if (!usuarioRegistrado.status) {
+      return res.status(404).json({
+        mensaje: usuarioRegistrado.mensaje,
         status: false,
-      });
-    } else {
-      return res.status(500).json({
-        mensaje: "Error al registrar el usuario.",
-        status: false,
-        error: usuarioRegistrado, // Proporciona más detalles del error
+        error: usuarioRegistrado.error,
       });
     }
   } catch (error) {
@@ -89,12 +86,12 @@ const registrarUsuario = async (req, res) => {
     return res.status(500).json({
       mensaje: "Error al registrar el usuario.",
       status: false,
-      error: error.message, // Proporciona más detalles del error
+      error: error.message,
     });
   }
 };
 
-//CONTROLADOR PARA REGISTRAR EL VENDEDOR
+// CONTROLADOR PARA REGISTRAR EL VENDEDOR
 const registrarVendedor = async (req, res) => {
   try {
     const { documento, nombre, fechaNacimiento, usuarioId } = req.body;
@@ -115,20 +112,19 @@ const registrarVendedor = async (req, res) => {
       usuarioId
     );
 
-    if (vendedorRegistrado === true) {
+    console.log("Resultado del modelo:", vendedorRegistrado);
+
+    if (vendedorRegistrado.status) {
       return res.status(201).json({
         mensaje: "Vendedor registrado correctamente.",
         status: true,
-      });
-    } else if (vendedorRegistrado === false) {
-      return res.status(500).json({
-        mensaje: "ya está registrado",
-        status: false,
+        vendedor: vendedorRegistrado.vendedor,
       });
     } else {
       return res.status(500).json({
-        mensaje: "Error al registrar el vendedor.",
+        mensaje: vendedorRegistrado.mensaje,
         status: false,
+        error: vendedorRegistrado.error,
       });
     }
   } catch (error) {
@@ -141,13 +137,20 @@ const registrarVendedor = async (req, res) => {
   }
 };
 
+module.exports = {
+  registrarVendedor,
+};
+
+module.exports = {
+  registrarVendedor,
+};
+
 // CONTROLADOR PARA LOGEARSE
 const loginUsuario = async (req, res) => {
   try {
     const { email, password } = req.body;
 
     if (!email || !password) {
-      console.log("Campos de email o contraseña faltantes en la solicitud.");
       return res.status(400).json({
         mensaje: "Por favor, proporcione tanto el email como la contraseña.",
         status: false,
@@ -155,32 +158,44 @@ const loginUsuario = async (req, res) => {
     }
 
     const idUsuario = await UsuarioModelo.loginUsuario(email);
-    console.log("Resultado de la autenticación:", idUsuario);
 
     if (idUsuario !== null) {
-      // Agregar console.log para depuración
-      console.log("Valor de password:", password);
-      console.log("Valor de usuario.Contraseña:", idUsuario.Contraseña);
-
       const contraseñaValida = await bcrypt.compare(
         password,
         idUsuario.Contraseña
       );
-      if (contraseñaValida > 0) {
+
+      // CREO EL TOKEN DE AUTENTICACION
+      const token = jwt.sign(
+        {
+          userId: idUsuario.id,
+          email: idUsuario.email,
+        },
+        process.env.SECRETO,
+        {
+          expiresIn: "1d",
+        }
+      );
+
+      if (contraseñaValida) {
         return res.status(200).json({
           mensaje: "Inicio de sesión exitoso",
+          usuario: idUsuario,
+          token: token,
           status: true,
         });
       } else {
         return res.status(401).json({
           mensaje: "Credenciales incorrectas",
           status: false,
+          usuario: idUsuario.error,
         });
       }
     } else {
       return res.status(404).json({
         mensaje: "Usuario no encontrado",
         status: false,
+        usuario: idUsuario,
       });
     }
   } catch (error) {
@@ -193,9 +208,47 @@ const loginUsuario = async (req, res) => {
   }
 };
 
+//CONTROLADOR PARA TREAR TODA LA INFORMACION DEL USUARIO
+const informacionUsuario = async (req, res) => {
+  try {
+    const id = req.params.id;
+
+    // Validación de que el ID es un número válido (puedes ajustarlo según tus necesidades)
+    if (isNaN(id)) {
+      return res.status(400).json({
+        mensaje: "El ID proporcionado no es válido.",
+        status: false,
+      });
+    }
+
+    const informacionUsuario = await UsuarioModelo.informacionUsuario(
+      parseInt(id, 10)
+    );
+
+    if (informacionUsuario !== null) {
+      return res.status(200).json({
+        mensaje: "Información del usuario obtenida con éxito.",
+        status: true,
+        usuario: informacionUsuario,
+      });
+    } else {
+      return res.status(404).json({
+        mensaje: "Usuario no encontrado",
+        status: false,
+      });
+    }
+  } catch (error) {
+    return res.status(500).json({
+      mensaje: "Error traer la informacion",
+      status: false,
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
-  registrarRol,
   registrarUsuario,
   registrarVendedor,
   loginUsuario,
+  informacionUsuario,
 };

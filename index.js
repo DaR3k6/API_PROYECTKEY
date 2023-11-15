@@ -2,7 +2,10 @@
 const express = require("express");
 const app = express();
 const cors = require("cors");
-const multer = require("multer");
+
+// Configuración de Swagger
+const swaggerOptions = require("./Swagger");
+const swaggerUi = require("swagger-ui-express");
 
 //PONGO EL PUERTO
 const port = process.env.PORT || 3000;
@@ -18,9 +21,12 @@ const productoRuta = require("./routes/producto");
 const detalleRuta = require("./routes/detalle");
 
 //RUTAS ACUERDO CON EL CONTROLADOR
-app.use("/api/", usuarioRuta);
-app.use("/api/", productoRuta);
-app.use("/api/", detalleRuta);
+app.use("/proyectkey/", usuarioRuta);
+app.use("/proyectkey/", productoRuta);
+app.use("/proyectkey/", detalleRuta);
+
+// Configuración de Swagger en una ruta específica
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerOptions));
 
 app.listen(port, () => {
   console.log(`El servidor está conectado en: http://localhost:${port}`);

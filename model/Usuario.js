@@ -1,7 +1,6 @@
 const sql = require("mssql");
 const conexion = require("./Conexion");
 
-
 //FUNCIÓN PARA REGISTRAR EL USUARIO
 const registrarUsuario = async (
   nombreUsuario,
@@ -30,8 +29,11 @@ const registrarUsuario = async (
     const correoExiste = result.output.correoExiste;
 
     if (correoExiste) {
-      console.log("El correo electronico ya existe");
-      return false;
+      console.log("El correo electrónico ya existe");
+      return {
+        mensaje: "El correo electrónico ya está registrado.",
+        status: false,
+      };
     }
 
     // OBTÉN EL ID DEL USUARIO REGISTRADO
@@ -39,19 +41,38 @@ const registrarUsuario = async (
 
     if (idUsuario !== null && idUsuario !== -1) {
       console.log("Usuario registrado con éxito. ID de usuario:", idUsuario);
-      return true;
+      return {
+        mensaje: "Usuario registrado correctamente.",
+        status: true,
+        usuario: {
+          id: idUsuario,
+          nombre: nombreUsuario,
+          apellido,
+          email,
+          idRol,
+        },
+      };
     } else if (idUsuario === -1) {
       console.log("El usuario ya existe.");
-      return false;
+      return {
+        mensaje: "El usuario ya está registrado.",
+        status: false,
+        error: "Usuario duplicado",
+      };
     } else {
       console.error("El procedimiento almacenado devolvió un código de error.");
-      return false;
+      return {
+        mensaje: "Error al registrar el usuario",
+        status: false,
+        error: "Error en el procedimiento almacenado",
+      };
     }
   } catch (error) {
     console.error("Error al registrar el usuario:", error);
     return {
       mensaje: "Error al registrar el usuario",
       status: false,
+      error: error.message,
     };
   }
 };
@@ -65,7 +86,6 @@ const registrarVendedor = async (
 ) => {
   try {
     const pool = await conexion();
-
     const request = await pool.request();
 
     // Configura los parámetros del procedimiento almacenado
@@ -82,25 +102,40 @@ const registrarVendedor = async (
 
     // Obtiene el ID del vendedor recién registrado
     const registroExitoso = result.output.registroExitoso;
-
-    if (registroExitoso === 1) {
+    
+    if (registroExitoso) {
       console.log("El proceso de registro fue exitoso.");
-      return true;
-    } else if (registroExitoso === 0) {
-      console.log("El usuario ya está registrado como vendedor.");
-      return false;
+      return {
+        status: true,
+        vendedor: {
+          id: result.output.idGenerado,
+          documento,
+          nombre,
+          fechaNacimiento,
+          usuarioId,
+        },
+      };
     } else {
       console.log("El proceso de registro falló.");
-      return false;
+      return {
+        status: false,
+        mensaje: "Error al registrar el vendedor.",
+      };
     }
   } catch (error) {
     console.error("Error al registrar el vendedor:", error);
     return {
-      mensaje: "Error al registrar el vendedor",
       status: false,
+      mensaje: "Error al registrar el vendedor",
+      error: error.message,
     };
   }
 };
+
+module.exports = {
+  registrarVendedor,
+};
+
 
 //FUNCION DE LOGIN PARA INICAR QUE TIPO DE ROL ES 'VENDEDOR O CLIENTE'
 const loginUsuario = async email => {
@@ -130,9 +165,36 @@ const loginUsuario = async email => {
   }
 };
 
+//FUNCION TRAER LA INFORMACION DEL USUARIO
+const informacionUsuario = async id => {
+  try {
+    const pool = await conexion();
+    const request = await pool.request();
+
+    // CONFIGURAR LOS PARÁMETROS DEL PROCEDIMIENTO
+    await request.input("id", sql.Int, id);
+
+    // EJECUTA EL PROCEDIMIENTO ALMACENADO
+    const result = await request.execute("dbo.TraerInformacioUsuario");
+    console.log("Resultado del inicio de sesión:", result.recordset[0]);
+
+    if (result.recordset.length > 0) {
+      return result.recordset[0];
+    } else {
+      return null;
+    }
+  } catch (error) {
+    console.error("Error al logear el usuario:", error);
+    return {
+      mensaje: "Error al logearse",
+      status: false,
+    };
+  }
+};
+
 module.exports = {
-  registrarRol,
   registrarUsuario,
   loginUsuario,
   registrarVendedor,
+  informacionUsuario,
 };
