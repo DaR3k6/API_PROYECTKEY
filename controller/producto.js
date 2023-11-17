@@ -9,7 +9,7 @@ const agregarProducto = async (req, res) => {
       precio,
       stock,
       vendedor_idVendedor,
-      categoria,
+      categoria_idCategoria,
     } = req.body;
 
     // Validaciones
@@ -20,7 +20,7 @@ const agregarProducto = async (req, res) => {
       });
     }
 
-    const imagen = Buffer.from(req.body.imagen, "base64");
+    const imagen = req.file.buffer;
 
     // Llama al modelo para agregar o actualizar el producto
     const resultado = await productoModelo.agregarOActualizarProducto(
@@ -30,19 +30,29 @@ const agregarProducto = async (req, res) => {
       precio,
       stock,
       vendedor_idVendedor,
-      categoria,
+      categoria_idCategoria,
       imagen
     );
 
-    if (resultado > 0) {
-      return res.status(200).json({
-        mensaje: "Producto agregado con éxito",
-        status: true,
-        idProducto: resultado,
-      });
+    console.log(resultado.categoria);
+
+    if (resultado !== undefined) {
+      if (resultado.status) {
+        return res.status(200).json({
+          mensaje: "Producto agregado o actualizado con éxito",
+          status: true,
+          producto: resultado,
+        });
+      } else {
+        return res.status(400).json({
+          mensaje: "Error al agregar el producto",
+          status: false,
+          error: resultado.error,
+        });
+      }
     } else {
-      return res.status(400).json({
-        mensaje: "Error al agregar el producto",
+      return res.status(500).json({
+        mensaje: "Error inesperado en el servidor",
         status: false,
       });
     }
@@ -67,7 +77,7 @@ const actualizarProducto = async (req, res) => {
       precio,
       stock,
       vendedor_idVendedor,
-      categoria,
+      categoria_idCategoria,
     } = req.body;
 
     // Validaciones, si es necesario
@@ -78,29 +88,37 @@ const actualizarProducto = async (req, res) => {
       });
     }
 
-    const imagen = Buffer.from(req.body.imagen, "base64");
+    const imagen = req.file.buffer;
 
     // Llama al modelo para agregar o actualizar el producto
     const resultado = await productoModelo.agregarOActualizarProducto(
-      idProducto, // Utiliza el ID del producto para actualizar
+      idProducto,
       nombre,
       descripcion,
       precio,
       stock,
       vendedor_idVendedor,
-      categoria,
+      categoria_idCategoria,
       imagen
     );
 
-    if (resultado > 0) {
-      return res.status(200).json({
-        mensaje: "Producto actualizado con éxito",
-        status: true,
-        idProducto: resultado,
-      });
+    if (resultado !== undefined) {
+      if (resultado.status) {
+        return res.status(200).json({
+          mensaje: "Producto actualizado con éxito",
+          status: true,
+          producto: resultado,
+        });
+      } else {
+        return res.status(400).json({
+          mensaje: resultado.mensaje || "Error al actualizar el producto",
+          status: false,
+          error: resultado.error || undefined,
+        });
+      }
     } else {
-      return res.status(400).json({
-        mensaje: "Error al actualizar el producto",
+      return res.status(500).json({
+        mensaje: "Error inesperado en el servidor",
         status: false,
       });
     }
@@ -114,7 +132,7 @@ const actualizarProducto = async (req, res) => {
   }
 };
 
-//CONTROLADOR DE BUSCAR EL NOMBRE DEL PRODUCTO
+// CONTROLADOR DE BUSCAR PRODUCTOS POR NOMBRE
 const buscarProductosPorNombre = async (req, res) => {
   try {
     const nombreProducto = req.params.nombre;
@@ -127,27 +145,29 @@ const buscarProductosPorNombre = async (req, res) => {
       });
     }
 
-    const productosEncontrados = await productoModelo.traerProductosPorNombre(
+    const resultadoBusqueda = await productoModelo.traerProductosPorNombre(
       nombreProducto
     );
 
-    if (productosEncontrados.length > 0) {
+    if (resultadoBusqueda.status) {
       return res.status(200).json({
-        mensaje: "Productos encontrados con éxito",
+        mensaje: resultadoBusqueda.mensaje,
         status: true,
-        productos: productosEncontrados,
+        productos: resultadoBusqueda.productos,
       });
     } else {
       return res.status(404).json({
-        mensaje: "No se encontraron productos con ese nombre",
+        mensaje: resultadoBusqueda.mensaje,
         status: false,
+        productos: resultadoBusqueda.productos,
       });
     }
   } catch (error) {
-    console.error("Error en la ruta actualizar el producto", error);
+    console.error("Error en la ruta buscar productos por nombre", error);
     return res.status(500).json({
-      mensaje: "Error al actualizar el producto",
+      mensaje: "Error al buscar productos por nombre",
       status: false,
+      error: error.message,
     });
   }
 };

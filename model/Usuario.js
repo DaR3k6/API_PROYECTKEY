@@ -132,11 +132,6 @@ const registrarVendedor = async (
   }
 };
 
-module.exports = {
-  registrarVendedor,
-};
-
-
 //FUNCION DE LOGIN PARA INICAR QUE TIPO DE ROL ES 'VENDEDOR O CLIENTE'
 const loginUsuario = async email => {
   try {
@@ -166,7 +161,7 @@ const loginUsuario = async email => {
 };
 
 //FUNCION TRAER LA INFORMACION DEL USUARIO
-const informacionUsuario = async id => {
+const    = async id => {
   try {
     const pool = await conexion();
     const request = await pool.request();

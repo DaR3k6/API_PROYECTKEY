@@ -9,38 +9,64 @@ const agregarOActualizarProducto = async (
   precio,
   stock,
   vendedor_idVendedor,
-  categoria,
+  categoria_idCategoria,
   imagen
 ) => {
   try {
     const pool = await conexion();
     const request = await pool.request();
 
-    //CONFIGURO LOS PARAMETROS DEL PROCEDIMIENTO
-    await request.input("idProducto", sql.Int, idProducto);
-    await request.input("nombre", sql.NVarChar, nombre);
-    await request.input("descripcion", sql.NVarChar, descripcion);
+    //CONFIGURO LOS PARÁMETROS DEL PROCEDIMIENTO
+    await request.output("idProducto", sql.Int, idProducto);
+    await request.input("nombre", sql.NVarChar(250), nombre);
+    await request.input("descripcion", sql.NVarChar(250), descripcion);
     await request.input("precio", sql.Decimal, precio);
     await request.input("stock", sql.Int, stock);
     await request.input("vendedor_idVendedor", sql.Int, vendedor_idVendedor);
-    await request.input("categoria", sql.NVarChar, categoria);
-    await request.input("imagen", sql.VarBinary, imagen);
+    await request.input(
+      "categoria_idCategoria",
+      sql.Int,
+      categoria_idCategoria
+    );
+    await request.input("imagen", sql.VarBinary(sql.MAX), imagen);
 
     //EJECUTA EL PROCEDIMIENTO ALMACENADO
     const result = await request.execute("dbo.AgregarProducto");
 
-    //VEREFICO SI EL PROCEDIMINETO ALMCENADO RETORNA
+    //VERIFICO SI EL PROCEDIMIENTO ALMACENADO RETORNA
     const codigoResultado = result.returnValue;
 
     if (codigoResultado === 0) {
       console.log("Producto agregado o actualizado con éxito");
-      return true;
+      return {
+        status: true,
+        idProducto: result.outputParameters
+          ? result.outputParameters.idProducto || idProducto
+          : idProducto,
+        nombre: nombre,
+        descripcion: descripcion,
+        precio: precio,
+        stock: stock,
+        vendedor_idVendedor: vendedor_idVendedor,
+        categoria_idCategoria: categoria_idCategoria,
+        imagen: imagen.toString("base64"),
+      };
     } else if (codigoResultado === 1) {
       console.log("El producto ya existe");
-      return false;
+      return {
+        status: false,
+        mensaje: "El producto ya existe",
+        productoExistente: true,
+      };
+    } else if (codigoResultado === -1) {
+      console.log("Error: El nuevo nombre ya existe");
+      return {
+        status: false,
+        mensaje: "Error: El nuevo nombre ya existe",
+      };
     } else {
       console.log("Error en la operación");
-      return false;
+      return { status: false, mensaje: "Error en la operación" };
     }
   } catch (error) {
     console.log("Error en agregar el producto:", error);
@@ -53,7 +79,7 @@ const agregarOActualizarProducto = async (
   }
 };
 
-//FUNCION DE TRAER POR ID EL PRODUCTO
+// FUNCION DE TRAER PRODUCTOS POR NOMBRE
 const traerProductosPorNombre = async nombreProducto => {
   try {
     const pool = await conexion();
@@ -67,17 +93,25 @@ const traerProductosPorNombre = async nombreProducto => {
 
     if (result.recordset.length > 0) {
       console.log("Productos encontrados con éxito");
-      return result.recordset;
+      return {
+        status: true,
+        mensaje: "Productos encontrados con éxito",
+        productos: result.recordset,
+      };
     } else {
       console.log("No se encontraron productos con ese nombre");
-      return [];
+      return {
+        status: false,
+        mensaje: "No se encontraron productos con ese nombre",
+        productos: [],
+      };
     }
   } catch (error) {
     console.log("Error al buscar el producto:", error);
 
     return {
-      mensaje: "Error al buscar el producto",
       status: false,
+      mensaje: "Error al buscar el producto",
       error: error.message,
     };
   }

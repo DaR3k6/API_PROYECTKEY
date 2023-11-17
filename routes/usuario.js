@@ -53,7 +53,7 @@ const auth = require("../helper/auth");
  *         content:
  *           application/json:
  *             example:
- *               mensaje: Los campos no pueden estar vacíos.
+ *               mensaje: Los campos no pueden estar vacíos o la contraseña debe tener al menos 10 caracteres.
  *               status: false
  *       500:
  *         description: Error al registrar el usuario.
